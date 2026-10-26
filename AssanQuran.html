@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>آسان ترجمہ قرآن</title>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Noto+Nastaliq+Urdu:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #ece5d3; --surface: #fffdf8; --text: #1f2a24; --muted: #6b7a70; --line: #e6decb; --brand: #0f5132; --brand-dark: #0a3622; --gold: #c9a227; --hover: #f4eddc; --active: #e2efe6; }
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) { --bg: #0f1512; --surface: #161e1a; --text: #e7efe9; --muted: #93a39a; --line: #25302a; --brand: #4cb585; --brand-dark: #0a2a1c; --gold: #d8b44a; --hover: #1d2722; --active: #1f3329; }
+        }
+        :root[data-theme="dark"] { --bg: #0f1512; --surface: #161e1a; --text: #e7efe9; --muted: #93a39a; --line: #25302a; --brand: #4cb585; --brand-dark: #0a2a1c; --gold: #d8b44a; --hover: #1d2722; --active: #1f3329; }
+
+        * { box-sizing: border-box; }
+        html, body { margin: 0; height: 100%; }
+        body { display: flex; overflow: hidden; font: 15px/1.4 system-ui, 'Segoe UI', sans-serif; color: var(--text); background: var(--bg); }
+        button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+        input { font: inherit; color: var(--text); }
+
+        /* Sidebar */
+        .sidebar { width: 440px; flex-shrink: 0; display: flex; flex-direction: column; background: var(--surface); border-right: 1px solid var(--line); transition: margin .25s; }
+        body.collapsed .sidebar { margin-left: -440px; }
+        .brand { padding: 14px 20px 10px; text-align: right; background: linear-gradient(135deg, #0f5132, #0a3622); border-bottom: 3px solid var(--gold); }
+        .brand h1 { margin: 0; font: 700 26px/2.1 'Noto Nastaliq Urdu', serif; color: #d8b44a; }
+        .brand p { margin: 0; font: 500 13px/2.2 'Noto Nastaliq Urdu', serif; color: rgba(255, 255, 255, .8); }
+        .tabs { display: flex; gap: 4px; padding: 6px 12px 0; border-bottom: 1px solid var(--line); }
+        .tabs button { flex: 1; padding: 10px 2px; margin-bottom: -1px; font-size: 14px; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; }
+        .tabs button.active { color: var(--brand); border-color: var(--gold); }
+        .search { padding: 12px; }
+        .search input { width: 100%; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); outline: none; }
+        .search input:focus { border-color: var(--gold); }
+        #list { flex: 1; overflow: auto; list-style: none; margin: 0; padding: 0 8px 8px; }
+        .item { display: flex; align-items: center; border-radius: 10px; }
+        .item:hover { background: var(--hover); }
+        .item.active { background: var(--active); }
+        .item .open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; padding: 9px 8px; text-align: left; }
+        .num { flex-shrink: 0; width: 26px; height: 26px; margin: 0 4px; display: grid; place-items: center; border: 1.5px solid var(--gold); border-radius: 6px; transform: rotate(45deg); }
+        .num span { transform: rotate(-45deg); font-size: 12px; font-weight: 700; color: var(--brand); }
+        .names { flex: 1; min-width: 0; }
+        .names b { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+        .names small { color: var(--muted); }
+        .ar { font: 700 19px 'Amiri', serif; color: var(--brand); }
+        .item .side { padding: 8px 10px; color: var(--muted); opacity: 0; }
+        .item:hover .side, .item.active .side { opacity: 1; }
+        .item .side:hover { color: var(--text); }
+        @media (hover: none) { .item .side { opacity: 1; } }
+        .empty, .tip { margin: 0; padding: 12px 20px; font-size: 13px; color: var(--muted); }
+        .tip { border-top: 1px solid var(--line); }
+        .ayah + .ayah { border-top: 1px solid var(--line); }
+        .ayah button { width: 100%; display: flex; flex-direction: column; gap: 6px; padding: 12px 10px; text-align: left; border-radius: 10px; }
+        .ayah button:hover { background: var(--hover); }
+        .ref { font-size: 13px; font-weight: 700; color: var(--brand); }
+        .ref small { font-weight: 400; color: var(--muted); }
+        .ar-text { font: 400 21px/1.9 'Amiri', serif; text-align: right; }
+        .ur-text { font: 500 15px/2.3 'Noto Nastaliq Urdu', serif; text-align: right; }
+        .en-text { font-size: 13px; color: var(--muted); }
+
+        /* Reader */
+        .content { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+        .topbar { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: var(--surface); border-bottom: 1px solid var(--line); }
+        .icon { width: 38px; height: 38px; flex-shrink: 0; display: grid; place-items: center; border-radius: 8px; font-size: 18px; }
+        .icon:hover { background: var(--hover); }
+        .where { flex: 1; min-width: 0; padding: 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .where b { margin-right: 6px; }
+        .where small { color: var(--muted); }
+        .pager { display: flex; align-items: center; padding: 2px; border-radius: 10px; background: var(--bg); }
+        .pager .icon { width: 34px; height: 34px; }
+        .pager input { width: 64px; padding: 6px 0; text-align: center; font-weight: 600; border: 0; background: transparent; outline: none; appearance: textfield; -moz-appearance: textfield; }
+        .pager input::-webkit-inner-spin-button { -webkit-appearance: none; }
+        #star.on { color: var(--gold); }
+        main { flex: 1; position: relative; overflow: hidden; }
+        /* ponytail: crops Scribd's top/bottom bars by offset; tweak 40px/45px if Scribd changes its UI */
+        iframe { position: absolute; top: -40px; left: 0; width: 100%; height: calc(100% + 85px); border: 0; }
+        .backdrop { display: none; }
+
+        @media (max-width: 800px) {
+            .sidebar { position: fixed; inset: 0 auto 0 0; z-index: 10; width: min(360px, 90vw); margin: 0 !important; transform: translateX(-100%); transition: transform .25s; }
+            body.drawer .sidebar { transform: none; }
+            body.drawer .backdrop { display: block; position: fixed; inset: 0; z-index: 9; background: rgba(0, 0, 0, .45); }
+            .hide-sm { display: none; }
+        }
+    </style>
+</head>
+
+<body>
+    <aside class="sidebar">
+        <div class="brand">
+            <h1>آسان ترجمہ قرآن</h1>
+            <p>مفتی محمد تقی عثمانی</p>
+        </div>
+        <nav class="tabs">
+            <button data-tab="surah">Surah</button>
+            <button data-tab="para">Para</button>
+            <button data-tab="ayah">Search</button>
+            <button data-tab="bookmarks">Bookmarks</button>
+        </nav>
+        <div class="search"><input id="search" type="search" autocomplete="off"></div>
+        <p class="empty" id="empty"></p>
+        <ul id="list"></ul>
+        <p class="tip" id="tip"></p>
+    </aside>
+    <div class="backdrop" id="backdrop"></div>
+
+    <div class="content">
+        <header class="topbar">
+            <button class="icon" id="menu" title="Toggle sidebar">☰</button>
+            <div class="where" id="where"></div>
+            <form class="pager" id="goForm">
+                <button type="button" class="icon" id="prev" title="Previous page (←)">‹</button>
+                <input id="page" type="number" min="1" aria-label="Page number" title="Type a page and press Enter">
+                <button type="button" class="icon" id="next" title="Next page (→)">›</button>
+            </form>
+            <button class="icon" id="star" title="Bookmark this page">☆</button>
+            <button class="icon hide-sm" id="full" title="Full screen">⛶</button>
+            <button class="icon" id="theme" title="Light / dark">◐</button>
+        </header>
+        <main>
+            <iframe id="viewer" title="Aasan Tarjuma Quran in Urdu" allowfullscreen></iframe>
+        </main>
+    </div>
+
+    <script>
+        const DOC = 'https://www.scribd.com/embeds/114731378/content?view_mode=scroll&access_key=key-1ygjg2hcmbc2i2jvf03v&start_page=';
+        const SURAHS = ('الفاتحة,Al-Fatihah|البقرة,Al-Baqarah|آل عمران,Aal-e-Imran|النساء,An-Nisa|المائدة,Al-Ma\'idah|الأنعام,Al-An\'am|الأعراف,Al-A\'raf|الأنفال,Al-Anfal|التوبة,At-Tawbah|يونس,Yunus|' +
+            'هود,Hud|يوسف,Yusuf|الرعد,Ar-Ra\'d|إبراهيم,Ibrahim|الحجر,Al-Hijr|النحل,An-Nahl|الإسراء,Al-Isra|الكهف,Al-Kahf|مريم,Maryam|طه,Taha|' +
+            'الأنبياء,Al-Anbiya|الحج,Al-Hajj|المؤمنون,Al-Mu\'minun|النور,An-Nur|الفرقان,Al-Furqan|الشعراء,Ash-Shu\'ara|النمل,An-Naml|القصص,Al-Qasas|العنكبوت,Al-Ankabut|الروم,Ar-Rum|' +
+            'لقمان,Luqman|السجدة,As-Sajdah|الأحزاب,Al-Ahzab|سبأ,Saba|فاطر,Fatir|يس,Ya-Sin|الصافات,As-Saffat|ص,Sad|الزمر,Az-Zumar|غافر,Ghafir|' +
+            'فصلت,Fussilat|الشورى,Ash-Shura|الزخرف,Az-Zukhruf|الدخان,Ad-Dukhan|الجاثية,Al-Jathiyah|الأحقاف,Al-Ahqaf|محمد,Muhammad|الفتح,Al-Fath|الحجرات,Al-Hujurat|ق,Qaf|' +
+            'الذاريات,Adh-Dhariyat|الطور,At-Tur|النجم,An-Najm|القمر,Al-Qamar|الرحمن,Ar-Rahman|الواقعة,Al-Waqi\'ah|الحديد,Al-Hadid|المجادلة,Al-Mujadilah|الحشر,Al-Hashr|الممتحنة,Al-Mumtahanah|' +
+            'الصف,As-Saff|الجمعة,Al-Jumu\'ah|المنافقون,Al-Munafiqun|التغابن,At-Taghabun|الطلاق,At-Talaq|التحريم,At-Tahrim|الملك,Al-Mulk|القلم,Al-Qalam|الحاقة,Al-Haqqah|المعارج,Al-Ma\'arij|' +
+            'نوح,Nuh|الجن,Al-Jinn|المزمل,Al-Muzzammil|المدثر,Al-Muddaththir|القيامة,Al-Qiyamah|الإنسان,Al-Insan|المرسلات,Al-Mursalat|النبأ,An-Naba|النازعات,An-Nazi\'at|عبس,Abasa|' +
+            'التكوير,At-Takwir|الانفطار,Al-Infitar|المطففين,Al-Mutaffifin|الانشقاق,Al-Inshiqaq|البروج,Al-Buruj|الطارق,At-Tariq|الأعلى,Al-A\'la|الغاشية,Al-Ghashiyah|الفجر,Al-Fajr|البلد,Al-Balad|' +
+            'الشمس,Ash-Shams|الليل,Al-Layl|الضحى,Ad-Duha|الشرح,Ash-Sharh|التين,At-Tin|العلق,Al-Alaq|القدر,Al-Qadr|البينة,Al-Bayyinah|الزلزلة,Az-Zalzalah|العاديات,Al-Adiyat|' +
+            'القارعة,Al-Qari\'ah|التكاثر,At-Takathur|العصر,Al-Asr|الهمزة,Al-Humazah|الفيل,Al-Fil|قريش,Quraysh|الماعون,Al-Ma\'un|الكوثر,Al-Kawthar|الكافرون,Al-Kafirun|النصر,An-Nasr|' +
+            'المسد,Al-Masad|الإخلاص,Al-Ikhlas|الفلق,Al-Falaq|الناس,An-Nas').split('|').map(s => s.split(','));
+        const PARAS = ('الم,Alif Lam Meem|سيقول,Sayaqool|تلك الرسل,Tilkar Rusul|لن تنالوا,Lan Tanaloo|والمحصنات,Wal Muhsanat|لا يحب الله,La Yuhibbullah|وإذا سمعوا,Wa Iza Samiu|ولو أننا,Wa Lau Annana|قال الملأ,Qalal Malau|واعلموا,Wa A\'lamu|' +
+            'يعتذرون,Ya\'tazirun|وما من دابة,Wa Ma Min Dabbah|وما أبرئ,Wa Ma Ubarri\'u|ربما,Rubama|سبحان الذي,Subhanallazi|قال ألم,Qal Alam|اقترب للناس,Iqtaraba|قد أفلح,Qad Aflaha|وقال الذين,Wa Qalallazina|أمن خلق,Amman Khalaq|' +
+            'اتل ما أوحي,Utlu Ma Uhiya|ومن يقنت,Wa Man Yaqnut|وما لي,Wa Mali|فمن أظلم,Faman Azlam|إليه يرد,Ilaihi Yuraddu|حم,Ha Meem|قال فما خطبكم,Qala Fama Khatbukum|قد سمع الله,Qad Sami Allah|تبارك الذي,Tabarakallazi|عم,Amma').split('|').map(s => s.split(','));
+        // Scan page where each surah / para starts, in serial order (read from the book's index and page headers).
+        // Pages corrected from the sidebar are saved per browser on top of these.
+        const SURAH_START = [30, 34, 173, 237, 313, 373, 435, 510, 547, 617, 652, 691, 737, 762, 781, 799, 836, 871, 910, 931,
+            963, 991, 1018, 1040, 1071, 1091, 1121, 1145, 1176, 1206, 1226, 1239, 1249, 1284, 1303, 1319, 1336, 1357, 1376, 1397,
+            1418, 1434, 1449, 1470, 1479, 1490, 1505, 1519, 1537, 1548, 1559, 1570, 1580, 1592, 1602, 1613, 1625, 1641, 1653, 1665,
+            1677, 1685, 1691, 1698, 1705, 1715, 1723, 1731, 1740, 1747, 1754, 1760, 1768, 1774, 1783, 1789, 1795, 1801, 1807, 1813,
+            1818, 1823, 1826, 1831, 1835, 1840, 1842, 1844, 1847, 1851, 1855, 1858, 1861, 1863, 1865, 1867, 1870, 1871, 1873, 1875,
+            1877, 1878, 1879, 1880, 1882, 1884, 1886, 1888, 1889, 1891, 1893, 1895, 1897, 1898];
+        const PARA_START = [30, 96, 155, 202, 253, 302, 356, 411, 467, 529, 593, 655, 714, 781, 836, 898, 963, 1018, 1078, 1138,
+            1189, 1265, 1325, 1386, 1432, 1490, 1565, 1641, 1723, 1801];
+        const bySerial = list => Object.fromEntries(list.map((p, i) => [i + 1, p]));
+        // Scan page where each ayah starts, for all 6236 ayahs in order: base-36 page steps from page 32.
+        // Built by counting the ayah-end rings on every scan page; each surah's ring total matches its ayah count.
+        const AYAH_STEPS = '0000000401101010001000100010100111101010101020010010000010001001010110100200010011010001000110010100100010001300101001001101001010020100101001000100103100101002001010010001100010001001100200011010110010210101001000100010101010110110100111012010100002020202000210100202001010100001012000002010130000102001001000100010000101010000101010010001001000101000001001001000010010010010001000010010101000011000100001000101010010001000001000011000100100001020010000100010100001001001101010001000100010001401101010020200100011001120001001010101000100110100100100101100010100000100101020010010011011110010010101000100101001001000001011010010100100101000010001001010100100010000101005102201010011010010101000102000110020000301011001101001000100010100100100100020001101000110010110010002001020110001010003001000100100100000100010001000100100200002001000101010001000100010000110100100010010000010110100101100010011001001000110101010010020001101010101010100110000101000013000100000100001000100100110010010100101001010001001001101010001000101000201000010002001010001100001001010000000100000001000001010001001010001010100101001013101010020010010101100101001000101000010000100100071000100001100001001001002000100101000101003001010100010010000200100020102050030010200010010100100011011201001020201001001001001001001020100010010010200100100101000010100100100111001020100201000201101001080010100010010010010101010101001001001000010010001000001000010100000100100100000100001001000101000100100010004001001001001001010001000001000100100100101010001010010001000101000100100010010010101001100001000010000100010000100010010004000010100100010001011002001001010100110001010100110010002010010010010100100110001000010100001010002001000010014002010002010100201000020010010201011101000400101000110001000101010100100010001010000101000001030000010000100001001000010000001000000001000000100000100000000010000001000000100000010001000000001030100001001001010000010001001000010100010010000100010000100001001000101001001000100010000100100100100010001000010010001000010010410001001001001000100100010001000100100010001001000010001001100010001000100010010010001000001001000101000001000500000101000020010101200101010010010000010000100100100010100101000100000100001000003001001000010011000001000013000010001000001000001000100100000100000100000100010000010001000001000100010010000100000000001000040001000001000100000001000000000000010011000000010001000000100000010000100100100000100020000100010100000100000000101000010001000010010040001000100001000010001001000010010010000010001000100000010000010001000010000100020100010010000100001000010000003000200010001010101000010010010100100100020000101000100100001000100010001000013000100000010000010000100001000010000010000000100000100000010000001000010000010000001000000100000001000001000000100000401000200002000010000100100100120201010110010001000010010110120130010001000010000100100100000010001000010001000100001000010001000001000010000400001000000001000001000000100000000100000000010000000100000000100000000001000000000010000000000100000000001000000010000000000010001000000001000000000000100000100000000100000010000000100000001000000100000100000010000000001000004000001000100010010001000010000001000010101010010001000001010010001000000100000001000010000103000100010001001001000100300200100001010000010010001001001010010001000010001002000100100400001000100100001000000101000010001000100100101001000010000100100000f000100010001000001001001000100100001000200010010000100001003000000100101011000101000100001001300011000000100100001001000010500011101100101000100100100101001101120010000000102011100010100000100001040010001001010110010010100100001001000010001001000010030100000101010000100001000001000100010010101130000001000010010000100000100000010010001000001000000100000000001000100000100000100300001000000100000000000001000000000100000000000010000000000001000000010000000000000100000000000010000100000000000100000000010000000000100000010000100000001000000000000100000000001003000010000100000010001100010010001010000010010000010000000000100000010000000100000000100300100101001000010001001000010000100001000100010010001000001000000100001001300001000100100000100000100101000010001000010000100000100100001000010000100000100010030000010000210001000010000100010000100010000101000100030000010001000101000010100001000000100000100001000100500000001000100100001000010000001010001000001000001000001001001000000010000001000010001003000000010000000100000001000000000010000001000000000000100030000010000010010001000100010000100004000101001010011000100100010010010040010020000010010010100001000001000100600100100001100020010010102014010010020101100103000100000010000100001000001000000100010000103000000002000000000100000100000000100000001000000100000001002000000000100000010000002000000010000010000010000400000000020000000100000010000100010000001000000000100000000004001000000001000000000100000000010000000100000100000000400000100000000000100000000001000010000000000010000000000100000000000100000000400000000100000000000000001000000001000000000010000000000001000010000000001000000000000200000000300100010101010010011001010105101001010110100010000501001010101000100010000610010010012040000210001000400100100005001010010030000100010001000042100110010040101001010040001000001000000100000100000030001000000001000100000001000000010000000010000010002000001000001000000000001000000000000100000000010000200010000000001000000000000100000000010000003000010000000010000000100000301000100010000100000010001020000000002000000001300000000010000100000000000000200000010000000000100000003000100000000100000001000000000001000000200000100000001000000010000000030000001000000000001000000000010000000000001000000200000000000010000000001000000000000100030000100000000100000000000100000000000000100002000000000100000000100000000000010000000002000001000000000100000010000020000000010000000002000000010000000000001000000000001002000001000000000010000000200000020001000000000010000000100000000100000010000000000010000000000010000000000000200001000000001000000001000000100000000020000000002000000010000002000000100000000000002000000000020000000200000002000010000000000000200001000100010000000200000000002000000000010000000100100000000200002000200000020010000020020000200020000100000';
+        const AYAH_PAGE = [...AYAH_STEPS].reduce((a, c) => (a.push((a.at(-1) ?? 32) + parseInt(c, 36)), a), []);
+        // Ayah search text: Arabic (alquran.cloud) plus Mufti Taqi Usmani's own Urdu and English translations (fawazahmed0/quran-api on jsDelivr),
+        // so results read the same as this book.
+        const QURAN_SOURCES = [
+            'https://api.alquran.cloud/v1/quran/quran-simple',
+            'https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/urd-muhammadtaqiusm.min.json',
+            'https://cdn.jsdelivr.net/gh/fawazahmed0/quran-api@1/editions/eng-muftitaqiusmani.min.json'
+        ];
+
+        const $ = s => document.querySelector(s);
+        const store = {
+            get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
+            set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { } }
+        };
+        const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+        const LISTS = { surah: SURAHS, para: PARAS };
+        const pages = { surah: { ...bySerial(SURAH_START), ...store.get('surahPagesV2', {}) }, para: { ...bySerial(PARA_START), ...store.get('paraPagesV2', {}) } };
+        let bookmarks = store.get('bookmarks', []);
+        let tab = store.get('tab', 'surah');
+        let current = 1;
+        let verses = null, quranState = 'idle';
+
+        // Serial number of the surah/para the current page falls in (0 if unknown).
+        function locate(kind) {
+            let best = 0, bestPage = 0;
+            for (const [n, p] of Object.entries(pages[kind])) if (p <= current && p >= bestPage) { best = +n; bestPage = p; }
+            return best;
+        }
+
+        function go(p) {
+            current = Math.max(1, parseInt(p) || 1);
+            $('#page').value = current;
+            $('#viewer').src = DOC + current;
+            store.set('lastPage', current);
+            document.body.classList.remove('drawer');
+            update();
+        }
+
+        function update() {
+            const s = locate('surah'), j = locate('para');
+            const where = $('#where');
+            where.replaceChildren();
+            if (s) where.append(el('b', null, `${s}. ${SURAHS[s - 1][1]}`));
+            where.append(el('small', null, [j && `Para ${j}`, `Page ${current}`].filter(Boolean).join(' · ')));
+            const marked = bookmarks.some(b => b.page === current);
+            $('#star').textContent = marked ? '★' : '☆';
+            $('#star').classList.toggle('on', marked);
+            render();
+        }
+
+        function setStart(kind, n) {
+            const label = kind === 'surah' ? `Surah ${SURAHS[n - 1][1]}` : `Para ${n}`;
+            const p = parseInt(prompt(`Start page of ${label}:`, pages[kind][n] || current));
+            if (!p) return;
+            pages[kind][n] = p;
+            store.set(kind + 'PagesV2', pages[kind]);
+            go(p);
+        }
+
+        function item({ num, title, sub, ar, active, onOpen, side, sideTitle, onSide }) {
+            const li = el('li', 'item' + (active ? ' active' : ''));
+            const open = el('button', 'open');
+            const badge = el('span', 'num');
+            badge.append(el('span', null, num));
+            const names = el('span', 'names');
+            names.append(el('b', null, title), el('small', null, sub));
+            open.append(badge, names);
+            if (ar) open.append(el('span', 'ar', ar));
+            open.onclick = onOpen;
+            const btn = el('button', 'side', side);
+            btn.title = sideTitle;
+            btn.onclick = onSide;
+            li.append(open, btn);
+            return li;
+        }
+
+        // Fold Arabic/Urdu letter variants and drop diacritics so typed words match the Quran text.
+        const norm = t => t.toLowerCase()
+            .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED\u0640\uFEFF]/g, '')
+            .replace(/[أإآٱ]/g, 'ا').replace(/[ىیي]/g, 'ي').replace(/[کك]/g, 'ك').replace(/[ةۃہھ]/g, 'ه');
+
+        function loadQuran() {
+            if (quranState !== 'idle') return;
+            quranState = 'loading';
+            Promise.all(QURAN_SOURCES.map(url => fetch(url).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })))
+                .then(([ar, ur, en]) => {
+                    const bism = ar.data.surahs[0].ayahs[0].text.replace('\uFEFF', '');
+                    verses = [];
+                    ar.data.surahs.forEach(s => s.ayahs.forEach((a, k) => {
+                        let text = a.text.replace('\uFEFF', '');
+                        if (k === 0) {
+                            if (s.number > 1 && text.startsWith(bism)) text = text.slice(bism.length).trim();
+                        }
+                        const v = { s: s.number, a: a.numberInSurah, g: a.number, ar: text, ur: ur.quran[a.number - 1].text, en: en.quran[a.number - 1].text };
+                        v.key = norm(`${v.ar} ${v.ur} ${v.en}`);
+                        v.urn = norm(v.ur);
+                        verses.push(v);
+                    }));
+                    quranState = 'ready';
+                })
+                .catch(() => { quranState = 'error'; })
+                .finally(() => { if (tab === 'ayah') render(); });
+        }
+
+        function searchAyahs(q) {
+            const ref = q.match(/^(\d{1,3})\s*[:.\s]\s*(\d{1,3})$/);
+            if (ref) return verses.filter(v => v.s === +ref[1] && v.a === +ref[2]);
+            const tests = norm(q).split(/\s+/).filter(Boolean).map(w => {
+                if (!/^[a-z]+$/.test(w)) return v => v.key.includes(w);
+                const re = romanRegex(w);   // Latin word: English text, or Roman Urdu against the Urdu text
+                return v => v.key.includes(w) || re.test(v.urn);
+            });
+            return verses.filter(v => tests.every(t => t(v)));
+        }
+
+        // Roman Urdu word → pattern over normalized Urdu, e.g. "rehmat" → رحمت, "namaz" → نماز, "jannat" → جنت.
+        // Typed vowels are optional (Urdu often doesn't write them); doubled letters may be written once.
+        const ROMAN = { kh: 'خ', gh: 'غ', sh: 'ش', ch: 'چ', zh: 'ژ', th: '[تثطٹ]ه?', dh: '[دذڈ]ه?', ph: '(?:په|ف)', bh: 'به', jh: 'جه',
+            b: 'ب', p: 'پ', t: '[تطٹ]', d: '[دڈض]', j: 'ج', r: '[رڑ]', z: '[زذضظ]', s: '[سصث]', f: 'ف', q: 'ق', k: '[كق]', c: '[كس]',
+            g: 'گ', l: 'ل', m: 'م', n: '[نں]', w: 'و', v: 'و', y: 'ي', h: '[حه]', x: 'كس' };
+        const VOWELS = 'اويےعءئ';
+        function romanRegex(word) {
+            let re = '';
+            for (let i = 0; i < word.length;) {
+                const vowels = word.slice(i).match(/^[aeiou]+/);
+                if (vowels) {
+                    i += vowels[0].length;
+                    re += i === vowels[0].length ? `[اع][${VOWELS}]{0,2}` : i === word.length ? `[${VOWELS}ه]{1,2}ں?` : `[${VOWELS}]{0,2}`;
+                    continue;
+                }
+                const key = ROMAN[word.slice(i, i + 2)] ? word.slice(i, i + 2) : word[i];
+                let len = key.length;
+                while (word.slice(i + len, i + len + key.length) === key) len += key.length;   // "nn" in jannat
+                const last = i + len === word.length;
+                const cls = key === 't' && last ? '[تطٹه]' : ROMAN[key] || '';
+                if (cls) re += len > key.length ? `(?:${cls}){1,2}` : cls;
+                i += len;
+            }
+            return new RegExp(`(?:^|[^ء-ۿ])${re}(?![ء-ۿ])`);   // whole Urdu word
+        }
+
+        function ayahCard(v) {
+            const p = AYAH_PAGE[v.g - 1];
+            const btn = el('button');
+            const ref = el('span', 'ref', `${SURAHS[v.s - 1][1]} ${v.s}:${v.a}`);
+            ref.append(el('small', null, ` · page ${p}`));
+            const ar = el('span', 'ar-text', v.ar), ur = el('span', 'ur-text', v.ur);
+            ar.dir = ur.dir = 'rtl'; ar.lang = 'ar'; ur.lang = 'ur';
+            btn.append(ref, ar, ur, el('span', 'en-text', v.en));
+            btn.onclick = () => go(p);
+            const li = el('li', 'ayah');
+            li.append(btn);
+            return li;
+        }
+
+        function render() {
+            const raw = $('#search').value.trim(), q = raw.toLowerCase();
+            const list = $('#list');
+            let msg = '';
+            list.replaceChildren();
+            document.querySelectorAll('[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+            $('#search').placeholder = { surah: 'Search surah name or number…', para: 'Search para name or number…', ayah: 'Arabic, Urdu, Roman Urdu or English, or 2:255', bookmarks: 'Search bookmarks…' }[tab];
+            $('#tip').textContent = {
+                surah: 'Start pages are filled in. If one is off, tap ✎ to correct it.', para: 'Start pages are filled in. If one is off, tap ✎ to correct it.',
+                ayah: 'Translation: Mufti Taqi Usmani (same as this book). Tapping an ayah opens the page where it starts.', bookmarks: ''
+            }[tab];
+            $('#tip').hidden = tab === 'bookmarks';
+
+            if (tab === 'ayah') {
+                // After a failed load, show the error once; the next keystroke retries.
+                const failed = quranState === 'error';
+                if (failed) quranState = 'idle';
+                else loadQuran();
+                if (failed) msg = 'Could not load the Quran text. Check your internet, then type again.';
+                else if (quranState === 'loading') msg = 'Loading Quran text…';
+                else if (raw.length < 2) msg = 'Type a word in Arabic, Urdu, Roman Urdu or English (e.g. صبر, rehmat, namaz, mercy), or a reference like 2:255.';
+                else {
+                    const found = searchAyahs(raw);
+                    found.slice(0, 100).forEach(v => list.append(ayahCard(v)));
+                    msg = !found.length ? 'No ayah found.' : found.length > 100 ? `Showing 100 of ${found.length} ayahs — add another word to narrow it down.` : `${found.length} ayah${found.length > 1 ? 's' : ''} found.`;
+                }
+            } else if (tab === 'bookmarks') {
+                bookmarks.filter(b => `${b.name} ${b.page}`.toLowerCase().includes(q)).forEach(b => list.append(item({
+                    num: '★', title: b.name, sub: `Page ${b.page}`, active: b.page === current,
+                    onOpen: () => go(b.page),
+                    side: '×', sideTitle: 'Delete', onSide: () => { bookmarks = bookmarks.filter(x => x !== b); store.set('bookmarks', bookmarks); update(); }
+                })));
+                if (!list.children.length) msg = q ? 'No matching bookmarks.' : 'No bookmarks yet. Tap ☆ at the top to add one.';
+            } else {
+                const active = locate(tab);
+                LISTS[tab].forEach(([ar, en], i) => {
+                    const n = i + 1, p = pages[tab][n];
+                    if (!`${n} ${ar} ${en}`.toLowerCase().includes(q)) return;
+                    list.append(item({
+                        num: n, title: en, sub: p ? `Page ${p}` : 'Tap to set start page', ar, active: n === active,
+                        onOpen: () => p ? go(p) : setStart(tab, n),
+                        side: '✎', sideTitle: 'Set start page', onSide: () => setStart(tab, n)
+                    }));
+                });
+                if (!list.children.length) msg = 'Nothing found.';
+            }
+            $('#empty').textContent = msg;
+            $('#empty').hidden = !msg;
+        }
+
+        // Sidebar: collapses on desktop, slides in as a drawer on phones.
+        const isPhone = () => matchMedia('(max-width: 800px)').matches;
+        document.body.classList.toggle('collapsed', store.get('collapsed', false));
+        $('#menu').onclick = () => {
+            if (isPhone()) return document.body.classList.toggle('drawer');
+            store.set('collapsed', document.body.classList.toggle('collapsed'));
+        };
+        $('#backdrop').onclick = () => document.body.classList.remove('drawer');
+
+        document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { tab = b.dataset.tab; store.set('tab', tab); $('#search').value = ''; render(); });
+        $('#search').oninput = render;
+        $('#goForm').onsubmit = e => { e.preventDefault(); go($('#page').value); $('#page').blur(); };
+        $('#prev').onclick = () => go(current - 1);
+        $('#next').onclick = () => go(current + 1);
+        document.onkeydown = e => {
+            if (e.target.tagName === 'INPUT') return;
+            if (e.key === 'ArrowLeft') go(current - 1);
+            if (e.key === 'ArrowRight') go(current + 1);
+        };
+
+        $('#star').onclick = () => {
+            if (bookmarks.some(b => b.page === current)) {
+                bookmarks = bookmarks.filter(b => b.page !== current);
+            } else {
+                const s = locate('surah');
+                const name = prompt('Bookmark name:', s ? `${SURAHS[s - 1][1]} – page ${current}` : `Page ${current}`);
+                if (name === null) return;
+                bookmarks.push({ name: name.trim() || `Page ${current}`, page: current });
+            }
+            store.set('bookmarks', bookmarks);
+            update();
+        };
+
+        $('#full').onclick = () => document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+
+        const root = document.documentElement;
+        if (store.get('theme', null)) root.dataset.theme = store.get('theme');
+        $('#theme').onclick = () => {
+            const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+            root.dataset.theme = dark ? 'light' : 'dark';
+            store.set('theme', root.dataset.theme);
+        };
+
+        go(store.get('lastPage', 1));
+    </script>
+</body>
+
+</html>
