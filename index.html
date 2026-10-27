@@ -71,8 +71,8 @@
         .pager input::-webkit-inner-spin-button { -webkit-appearance: none; }
         #star.on { color: var(--gold); }
         main { flex: 1; position: relative; overflow: hidden; }
-        /* ponytail: crops Scribd's top/bottom bars by offset; tweak 40px/45px if Scribd changes its UI */
-        iframe { position: absolute; top: -40px; left: 0; width: 100%; height: calc(100% + 85px); border: 0; }
+        /* ponytail: crops Scribd's top bar and bottom "View on Scribd" button by offset; tweak 40px/180px if Scribd changes its UI */
+        iframe { position: absolute; top: -40px; left: 0; width: 100%; height: calc(100% + 180px); border: 0; }
         .backdrop { display: none; }
 
         @media (max-width: 800px) {
@@ -80,6 +80,11 @@
             body.drawer .sidebar { transform: none; }
             body.drawer .backdrop { display: block; position: fixed; inset: 0; z-index: 9; background: rgba(0, 0, 0, .45); }
             .hide-sm { display: none; }
+        }
+        /* ponytail: Scribd is cross-origin, so we can't style its page; instead widen the iframe and crop the sides.
+           Scribd fits the page to the iframe width, so this cuts ~10% per side (gray gutter + scan's white margin). Tweak 125%/-12.5% together. */
+        @media (max-width: 768px) {
+            iframe { width: 114%; left: -5.5%; }
         }
     </style>
 </head>
